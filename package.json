@@ -1,0 +1,24 @@
+{
+  "name": "pank",
+  "version": "1.0.0",
+  "description": "Panga loomine",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/eliandre/Malle-Andre-pank.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/eliandre/Malle-Andre-pank/issues"
+  },
+  "homepage": "https://github.com/eliandre/Malle-Andre-pank#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "express-validator": "^6.6.1",
+    "mongoose": "^5.10.4"
+  }
+}
