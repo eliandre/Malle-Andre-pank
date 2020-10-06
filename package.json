@@ -4,8 +4,7 @@
   "description": "Panga loomine",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon server.js"
+    "dev": "nodemon index.js"
   },
   "repository": {
     "type": "git",
@@ -18,13 +17,17 @@
   },
   "homepage": "https://github.com/eliandre/Malle-Andre-pank#readme",
   "dependencies": {
+    "bcrypt": "^5.0.0",
     "body-parser": "^1.19.0",
+    "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "express-validator": "^6.6.1",
-    "mongoose": "^5.10.4",
-    "morgan": "^1.10.0"
-  },
-  "devDependencies": {
-    "nodemon": "^2.0.4"
+    "md5": "^2.3.0",
+    "mongodb": "^3.6.2",
+    "mongoose": "^5.10.7",
+    "nodemon": "^2.0.4",
+    "swagger-ui-express": "^4.1.4",
+    "yaml": "^1.10.0",
+    "yamljs": "^0.3.0"
   }
 }
