@@ -1,4 +1,3 @@
-// uus fail
 const router = require('express').Router();
 const User = require('../models/User');
 const Account = require('../models/Account');
@@ -6,15 +5,14 @@ const bcrypt = require('bcrypt');
 
 router.post('/', async (req, res, next) => {
 
-
-        // kindlustamaks, et parool oleks
+        // Make sure the password is set
         if(typeof req.body.password === 'undefined' || req.body.password.length < 8){
             res.status(400).send({ error: "Invalid password"})
             return
         }
         req.body.password = await bcrypt.hash(req.body.password, 10);
             
-            // asenda tavaparool hashiga
+            // Substitute plain password with hash
             try {
 
                 // Create new user to database
@@ -23,10 +21,10 @@ router.post('/', async (req, res, next) => {
 
                 delete user.password;
 
-                // create new account for the user
+                // Create new account for the user
                 const account = await new Account({userId: user.id}).save();
 
-                // inject account to user objects
+                // Inject account to user objects
                 user.accounts = [account];
 
                 res.status(201).send({
@@ -49,7 +47,6 @@ router.post('/', async (req, res, next) => {
                 // Handle other errors
                 res.status(409).send({error: e.message})
             }
-    
 });
 
 module.exports = router;

@@ -1,4 +1,3 @@
-// uus fail
 const mongoose = require('mongoose');
 require('dotenv').config();
 
@@ -12,7 +11,7 @@ module.exports = mongoose.model('Account', mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     currency: { type: String, required: true, default: 'EUR' }
 },{
-    // transform _id to id
+    // Transform _id to id
     toJSON: {
         transform: (docIn, docOut) => {
             delete docOut._id;

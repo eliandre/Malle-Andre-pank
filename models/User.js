@@ -1,4 +1,3 @@
-//uus fail
 const mongoose = require('mongoose');
 
 module.exports = mongoose.model('User', mongoose.Schema({
@@ -10,7 +9,7 @@ module.exports = mongoose.model('User', mongoose.Schema({
         ref: 'Account'
     }]
 }, {
-    // transform _id to id
+    // Transform _id to id
     toJSON: {
         transform: (docIn, docOut) => {
             docOut.id = docOut._id;
