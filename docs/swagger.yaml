@@ -102,6 +102,34 @@ paths:
                                         error: Invalid token
                     description: Unauthorized
             summary: Logs the user out
+    /users/current:
+        get:
+            tags:
+                - users
+            responses:
+                '200':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/getUsersCurrentResponse'
+                    description: Successful request
+                '401':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/errorResponse'
+                            examples:
+                                Missing Authorization header:
+                                    value:
+                                        error: Missing Authorization header
+                                Invalid token:
+                                    value:
+                                        error: Invalid token
+                    description: Unauthorized
+            security:
+                -
+                    Token: []
+            summary: Returns currently logged in user's data
 components:
     schemas:
         postUsersRequest:
@@ -145,7 +173,7 @@ components:
                     description: Array of user's bank accounts.
                     type: array
                     items:
-                        $ref: '#/components/schemas/accountObject'
+                        $ref: '#/components/schemas/account'
             example:
                 id: 5f7b7ad24abdf90a746edaac
                 name: Juku
@@ -157,31 +185,6 @@ components:
                         currency: EUR
                         number: abc84dbea2a7b4b39fac9cbb2d6469ebfab
                         id: 5f7b7ad34abdf90a746edaad
-        accountObject:
-            title: accountObject
-            description: ''
-            type: object
-            properties:
-                name:
-                    description: Account's name.
-                    type: string
-                balance:
-                    format: int32
-                    description: The funds the account holds.
-                    type: integer
-                currency:
-                    description: The currency of the funds.
-                    type: string
-                number:
-                    description: Account's number.
-                    type: string
-            example: |-
-                {
-                    "name": "Main",
-                    "balance": 100000,
-                    "currency": "EUR",
-                    "number": "abc84dbea2a7b4b39fac9cbb2d6469ebfab",
-                }
         errorResponse:
             title: errorObject
             description: ''
@@ -215,6 +218,50 @@ components:
                     type: string
             example:
                 token: 5f8022d6f40ea213f83577fc
+        getUsersCurrentResponse:
+            title: Root Type for getUsersCurrentResponse
+            description: ''
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                username:
+                    type: string
+                accounts:
+                    description: Array of user's accounts
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/account'
+            example:
+                id: 5f8015346fea363d746f935b
+                name: Juku
+                username: Uku
+                accounts:
+                    -
+                        name: Main
+                        balance: 100000
+                        currency: EUR
+                        number: abc0d3949b73af69489183f5e5d2760537c
+        account:
+            title: Root Type for account
+            description: ''
+            type: object
+            properties:
+                name:
+                    type: string
+                balance:
+                    type: integer
+                currency:
+                    type: string
+                number:
+                    type: string
+            example:
+                name: Main
+                balance: 100000
+                currency: EUR
+                number: abc0d3949b73af69489183f5e5d2760537c
     securitySchemes:
         Token:
             scheme: bearer
