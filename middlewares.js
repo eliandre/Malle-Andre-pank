@@ -1,5 +1,8 @@
 const mongoose = require('mongoose');
 const sessionModel = require('./models/Session');
+const transactionModel = require('./models/Transaction');
+const bankModel = require('./models/Bank');
+const fetch = require('node-fetch');
 
 exports.verifyToken = async (req, res, next) => {
 
@@ -29,4 +32,37 @@ exports.verifyToken = async (req, res, next) => {
     req.userId = session.userId;
 
     return next();
+}
+
+exports.processTransactions = async () => {
+
+    // Get pending transactions
+    const pendingTransactions = await transactionModel.find({ status: 'pending'});
+
+    // Contact destination bank
+    const banks = await fetch(`${process.env.CENTRAL_BANK_URL}/banks`,{
+        headers: {"Api-Key": process.env.CENTRAL_BANK_API_KEY}
+    })
+        .then(responseText => responseText.text())
+
+    pendingTransactions.forEach(async transaction => {
+
+        const bankTo = await bankModel.findOne({ bankPrefix: transaction.accountTo.slice(0, 3) });
+
+        const r = await fetch(bankTo.transactionUrl, {
+            method: 'POST',
+            body: JSON.stringify(transaction),
+            headers: {
+                "Api-Key": process.env.CENTRAL_BANK_API_KEY,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(responseText => responseText.text())
+
+        console.log(r);
+        return transaction;
+        
+    }, Error())
+
+    setTimeout(exports.processTransactions, 1000); 
 }
