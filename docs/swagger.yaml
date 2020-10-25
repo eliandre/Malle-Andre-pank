@@ -2,6 +2,10 @@ openapi: 3.0.2
 info:
     title: Malle-Andre-pank
     version: 1.0.0
+servers:
+    -
+        url: 'http://localhost:1234'
+        description: ''
 paths:
     /users:
         post:
@@ -113,23 +117,65 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/getUsersCurrentResponse'
                     description: Successful request
-                '401':
+            security:
+                -
+                    Token: []
+            summary: Returns currently logged in user's data
+    /transactions:
+        post:
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/postTransactionsRequest'
+                required: true
+            tags:
+                - transactions
+            responses:
+                '201':
+                    content:
+                        application/json: {}
+                    description: Transactions has been successfully queued for transaction.
+                '400':
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/errorResponse'
                             examples:
-                                Missing Authorization header:
+                                invalidAmount:
                                     value:
-                                        error: Missing Authorization header
-                                Invalid token:
+                                        error: Invalid amount
+                                invalidAccountTo:
                                     value:
-                                        error: Invalid token
-                    description: Unauthorized
+                                        error: Invalid accountTo
+                    description: Invalid amount
+                '402':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/errorResponse'
+                            examples:
+                                paymentRequired:
+                                    value:
+                                        error: Payment required
+                    description: Insufficient funds
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/errorResponse'
+                            examples:
+                                forbidden:
+                                    value:
+                                        error: Forbidden
+                    description: AccountFrom does not belong to the user
+                '404':
+                    content:
+                        application/json: {}
+                    description: Account not found
             security:
                 -
                     Token: []
-            summary: Returns currently logged in user's data
 components:
     schemas:
         postUsersRequest:
@@ -156,7 +202,7 @@ components:
                 username: Uku
                 password: wordpass
         userObject:
-            title: userObject
+            title: user object
             description: ''
             type: object
             properties:
@@ -186,7 +232,7 @@ components:
                         number: abc84dbea2a7b4b39fac9cbb2d6469ebfab
                         id: 5f7b7ad34abdf90a746edaad
         errorResponse:
-            title: errorObject
+            title: error object
             description: ''
             type: object
             properties:
@@ -219,7 +265,7 @@ components:
             example:
                 token: 5f8022d6f40ea213f83577fc
         getUsersCurrentResponse:
-            title: Root Type for getUsersCurrentResponse
+            title: GET /users/current response
             description: ''
             type: object
             properties:
@@ -245,7 +291,7 @@ components:
                         currency: EUR
                         number: abc0d3949b73af69489183f5e5d2760537c
         account:
-            title: Root Type for account
+            title: account object
             description: ''
             type: object
             properties:
@@ -262,6 +308,29 @@ components:
                 balance: 100000
                 currency: EUR
                 number: abc0d3949b73af69489183f5e5d2760537c
+        postTransactionsRequest:
+            title: POST /transactions request
+            description: ''
+            type: object
+            properties:
+                accountFrom:
+                    description: Sender's bank account
+                    type: string
+                accountTo:
+                    description: Reciever's bank account
+                    type: string
+                amount:
+                    format: int32
+                    description: Transfered sum
+                    type: integer
+                explanation:
+                    description: Purpose of the transaction
+                    type: string
+            example:
+                accountFrom: abc3b770e63e9f1c2efc2b83c187653d2cc
+                accountTo: BY000000001
+                amount: 2
+                explanation: Don’t go spend it all at once
     securitySchemes:
         Token:
             scheme: bearer

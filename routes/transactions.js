@@ -4,12 +4,14 @@ const userModel = require('../models/User');
 const bankModel = require('../models/Bank');
 const accountModel = require('../models/Account');
 const transactionModel = require('../models/Transaction');
-const { verifyToken } = require('../middlewares');
+const { verifyToken, refreshBanks } = require('../middlewares');
 const fetch = require('node-fetch');
 
 require('dotenv').config();
 
 router.post('/', verifyToken, async (req, res, next) => {
+
+    let banks = [], statusDetail
     
     // Get account data from database
     const accountFromObject = await accountModel.findOne({ number: req.body.accountFrom })
@@ -38,34 +40,43 @@ router.post('/', verifyToken, async (req, res, next) => {
     let bankTo = await bankModel.findOne({ bankPrefix: bankToPrefix });
     
     // Check destination bank
-    if(!bankTo) {
-        const banks = await fetch(`${process.env.CENTRAL_BANK_URL}/banks`,{
-            headers: {"Api-Key": process.env.CENTRAL_BANK_API_KEY}
-        })
-            .then(responseText => responseText.text())
+    if (!bankTo) {
+        
+        // Refresh banks from central bank
+        const result = await refreshBanksFromCentralBank();
+
+        // Check if there was an error
+        if(typeof result.error !== 'undefined') {
+
+            // Logs the error to transaction
+            console.log('There was an error communicating with central bank: ')
+            console.log(result.error)
+            statusDetail = result.error
+        }
+        else {
+
+            // Try getting details of the destination bank again
+            bankTo = await bankModel.findOne({ bankPrefix: bankToPrefix });
+
+            // Check destination bank
+            if (!bankTo) {
+
+                return { error: 'Invalid accountTo' }
+                /*// Check if there was an error
+                if(typeof result.error !== 'undefined') {
+    
+                    // Log the error to transaction
+                    statusDetail = result.error;
+                }*/
+            }
+        }
+    }
+    else {
+        console.log("Destination bank was not found in cache.");
     }
 
-    // Delete all old banks
-    await bankModel.deleteMany();
-
-    // Create new bulk object
-    const bulk = bankModel.collection.initializeUnorderedBulkOp();
-
-    // Add banks to queue to be inserted into database
-    banks.forEach(bank => {
-        bulk.insert(bank);
-    })
-
-    // Start bulk insert
-    await bulk.execute();
-
-    // To getting details of the destination bank again
-    bankTo = await bankModel.findOne({ bankPrefix: bankToPrefix });
-
-    if(!bankTo) {
-        return res.status(400).json({ error: "Invalid accountTo"});
-    }
-
+    // Make new transaction
+    console.log('Creating transaction')
     const transaction = transactionModel.create({
         userId: req.userId,
         amount: req.body.amount,
@@ -73,10 +84,11 @@ router.post('/', verifyToken, async (req, res, next) => {
         accountFrom: req.body.accountFrom,
         accountTo: req.body.accountTo,
         explanation: req.body.explanation,
+        statusDetail,
         senderName: (await userModel.findOne({ _id: req.userId })).name
     })
 
-    return res.status(200).json();
+    return res.status(201).json();
 
 })
 

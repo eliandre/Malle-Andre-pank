@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/eliandre/Malle-Andre-pank#readme",
   "dependencies": {
+    "abort-controller": "^3.0.0",
     "bcrypt": "^5.0.0",
     "body-parser": "^1.19.0",
     "dotenv": "^8.2.0",
@@ -27,6 +28,7 @@
     "mongodb": "^3.6.2",
     "mongoose": "^5.10.7",
     "node-fetch": "^2.6.1",
+    "node-jose": "^2.0.0",
     "nodemon": "^2.0.4",
     "swagger-ui-express": "^4.1.4",
     "yaml": "^1.10.0",
