@@ -289,7 +289,7 @@ components:
                         name: Main
                         balance: 100000
                         currency: EUR
-                        number: abc0d3949b73af69489183f5e5d2760537c
+                        number: 8430d3949b73af69489183f5e5d2760537c
         account:
             title: account object
             description: ''
@@ -307,7 +307,7 @@ components:
                 name: Main
                 balance: 100000
                 currency: EUR
-                number: abc0d3949b73af69489183f5e5d2760537c
+                number: 8430d3949b73af69489183f5e5d2760537c
         postTransactionsRequest:
             title: POST /transactions request
             description: ''

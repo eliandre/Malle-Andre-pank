@@ -1,5 +1,4 @@
 const router = require('express').Router();
-//const sessionModel = require('../models/Session');
 const userModel = require('../models/User');
 const bankModel = require('../models/Bank');
 const accountModel = require('../models/Account');
@@ -60,14 +59,7 @@ router.post('/', verifyToken, async (req, res, next) => {
 
             // Check destination bank
             if (!bankTo) {
-
-                return { error: 'Invalid accountTo' }
-                /*// Check if there was an error
-                if(typeof result.error !== 'undefined') {
-    
-                    // Log the error to transaction
-                    statusDetail = result.error;
-                }*/
+                return res.status(400).json({ error: 'Invalid accountTo' })
             }
         }
     }
