@@ -51,23 +51,19 @@ exports.processTransactions = async () => {
     // Get pending transactions
     const pendingTransactions = await transactionModel.find({ status: 'pending'});
 
-    // Contact destination bank
-    const banks = await fetch(`${process.env.CENTRAL_BANK_URL}/banks`,{
-        headers: {"Api-Key": process.env.CENTRAL_BANK_API_KEY}
-    })
-        .then(responseText => responseText.text())
-
+    // Loop through each transaction and send a request
     pendingTransactions.forEach(async transaction => {
 
-        console.log('Processing transaction...');
+        console.log('loop: Processing transaction...');
 
         // Calculate transaction expiry time
         transactionExpiryTime = new Date(
             transaction.createdAt.getFullYear(),
             transaction.createdAt.getMonth(),
-            transaction.createdAt.getDate() + 3);
+            transaction.createdAt.getDate()
+            + 3);
         
-        if(transactionExpiryTime < Date.now) {
+        if(transactionExpiryTime < new Date) {
 
             // Set transaction status to failed
             transaction.status = 'failed',
@@ -99,7 +95,7 @@ exports.processTransactions = async () => {
 
         if(typeof centralBankResult !== 'undefined' && centralBankResult.error !== 'undefined') {
 
-            console.log('There was an error when tried to reach central bank')
+            console.log('loop: There was an error when tried to reach central bank')
             console.log(centralBankResult.error);
 
             // Set transaction status back to pending
@@ -113,10 +109,12 @@ exports.processTransactions = async () => {
         }
         else {
             // Attempt to get the destination bank after refresh again
-            const bankTo = await bankModel.findOne({ bankPrefix });
+            bankTo = await bankModel.findOne({ bankPrefix });
         }
 
         if(!bankTo) {
+
+            console.log('loop: WARN: Failed to get bankTo');
             // Set transaction status failed
             transaction.status = 'failed';
             transaction.statusDetail = 'There is no bank with prefix ' + bankPrefix
@@ -130,19 +128,26 @@ exports.processTransactions = async () => {
         const jwt = await jose.JWK.createSign({
             alg: 'RS256',
             format: 'compact'
-        }, key).update(JSON.stringify(transaction)).final();
+        }, key).update(JSON.stringify({
+            accountFrom: transaction.accountFrom,
+            accountTo: transaction.accountTo,
+            currency: transaction.currency,
+            amount: transaction.amount,
+            explanation: transaction.explanation,
+            senderName: transaction.senderName
+        }), 'utf8').final();
 
         // Send request to remote bank
 
         try {
-            console.log('Making request to ' + bankTo.transactionUrl);
+            console.log('loop: Making request to ' + bankTo.transactionUrl);
 
             // Abort connection after 1 second
             timeout = setTimeout(() => {
-                console.log('Aborting long running transaction');
+                console.log('loop: Aborting long running transaction');
 
                 // Abort the request
-                data.abortController.abort()
+                transactionData.abortController.abort()
 
                 // Set transaction status back to pending
                 transaction.status = 'pending';
@@ -152,7 +157,7 @@ exports.processTransactions = async () => {
 
             // Actually send the request
             serverResponseAsObject = await fetch(bankTo.transactionUrl, {
-                signal: data.abortController.signal,
+                signal: transactionData.abortController.signal,
                 method: 'POST',
                 body: JSON.stringify({jwt}),
                 headers: {
@@ -165,7 +170,7 @@ exports.processTransactions = async () => {
 
         }
         catch (e) {
-            console.log('Making request to another bank failed with the following message: ' + e.message);
+            console.log('loop: Making request to another bank failed with the following message: ' + e.message);
         }
 
         // Cancel aborting
@@ -185,10 +190,10 @@ exports.processTransactions = async () => {
         catch (e) {
 
             // Log the error
-            console.log(e.message + ". Response was: " + serverResponseAsPlainText)
+            console.log('loop: ' + e.message + ". Response was: " + serverResponseAsPlainText)
             transaction.status = 'failed'
             transaction.statusDetail = 'The other bank said ' + serverResponseAsPlainText
-            data.abortController = null
+            transactionData.abortController = null
             transaction.save()
 
             // Go to next transaction
@@ -197,7 +202,7 @@ exports.processTransactions = async () => {
 
         // Log bad responses from server to transaction statusDetail
         if(serverResponseAsObject.status < 200 || serverResponseAsObject.status >= 300) {
-            console.log('Server response was ' + serverResponseAsObject.status);
+            console.log('loop: Server response was ' + serverResponseAsObject.status);
             transaction.status = 'failed'
             transaction.statusDetail = typeof serverResponseAsJson.error !== 'undefined' ?
                 serverResponseAsJson.error : serverResponseAsPlainText
@@ -205,8 +210,8 @@ exports.processTransactions = async () => {
             return
         }
 
-        // Add recieverName to transaction
-        transaction.recieverName = serverResponseAsJson.recieverName;
+        // Add receiverName to transaction
+        transaction.receiverName = serverResponseAsJson.receiverName;
 
         // Deduct accountFrom
         account = await accountModel.findOne({ number: transaction.accountFrom })
@@ -214,7 +219,7 @@ exports.processTransactions = async () => {
         account.save();
 
         // Update transaction status to completed
-        console.log('transaction ' + transaction.id + ' completed')
+        console.log('loop: Transaction ' + transaction.id + ' completed')
         transaction.status = 'completed';
         transaction.statusDetail = '';
 
@@ -236,11 +241,11 @@ exports.refreshBanksFromCentralBank = async () => {
     try {
         console.log('Refreshing banks')
 
+        console.log('Attempting to contact sentral bank at ' + `${process.env.CENTRAL_BANK_URL}/banks`)
         banks = await fetch(`${process.env.CENTRAL_BANK_URL}/banks`, {
-            headers: { "Api-Key": process.env.CENTRAL_BANK_API_KEY }
+            headers: { 'Api-Key': process.env.CENTRAL_BANK_API_KEY }
         })
             .then(responseText => responseText.json())
-
 
         // Delete all old banks
         await bankModel.deleteMany();
