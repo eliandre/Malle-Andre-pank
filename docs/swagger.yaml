@@ -176,6 +176,71 @@ paths:
             security:
                 -
                     Token: []
+    /transactions/b2b:
+        post:
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/postTransactionsReceivingRequest'
+                required: true
+            tags:
+                - transactions
+            responses:
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/errorResponse'
+                            examples:
+                                JWTParsingFailed:
+                                    value:
+                                        error: Parsing JWT payload failed
+                                invalidSignature:
+                                    value:
+                                        error: Invalid signature
+                    description: Bad request
+                '404':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/errorResponse'
+                            examples:
+                                accountNotFound:
+                                    value:
+                                        error: Account not found
+                                accountNotInCentralBank:
+                                    value:
+                                        error: >-
+                                            The account sending the funds does not belong to a bank registered
+                                            in Central Bank
+                    description: Account not found
+                '500':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/errorResponse'
+                            examples:
+                                missingJwksUrl:
+                                    value:
+                                        error: 'Cannot verify your signature: The jwksUrl of your bank is missing'
+                                invalidJwksUrl:
+                                    value:
+                                        error: 'Cannot verify your signature: The jwksUrl of your bank is invalid'
+                    description: Cannot verify signature
+                '502':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/errorResponse'
+                            examples:
+                                centralBankError:
+                                    value:
+                                        error: Central Bank error
+                    description: Central Bank error
+            security:
+                -
+                    Token: []
 components:
     schemas:
         postUsersRequest:
@@ -289,7 +354,7 @@ components:
                         name: Main
                         balance: 100000
                         currency: EUR
-                        number: 8430d3949b73af69489183f5e5d2760537c
+                        number: abc0d3949b73af69489183f5e5d2760537c
         account:
             title: account object
             description: ''
@@ -307,7 +372,7 @@ components:
                 name: Main
                 balance: 100000
                 currency: EUR
-                number: 8430d3949b73af69489183f5e5d2760537c
+                number: abc0d3949b73af69489183f5e5d2760537c
         postTransactionsRequest:
             title: POST /transactions request
             description: ''
@@ -327,10 +392,41 @@ components:
                     description: Purpose of the transaction
                     type: string
             example:
-                accountFrom: abc3b770e63e9f1c2efc2b83c187653d2cc
+                accountFrom: RU000000001
                 accountTo: BY000000001
-                amount: 2
+                amount: 1500000000
                 explanation: Don’t go spend it all at once
+        postTransactionsReceivingRequest:
+            title: POST /transactionsReceiving request
+            description: ''
+            type: object
+            properties:
+                accountFrom:
+                    description: Sender's account
+                    type: string
+                accountTo:
+                    description: Receiver's account
+                    type: string
+                amount:
+                    format: int32
+                    description: Transferred sum
+                    type: integer
+                currency:
+                    description: Transaction's currency
+                    type: string
+                explanation:
+                    description: Short description of transaction
+                    type: string
+                senderName:
+                    description: Sender's name
+                    type: string
+            example:
+                accountFrom: RU000000001
+                accountTo: BY000000002
+                amount: 1500000000
+                currency: USD
+                explanation: Thx buddy
+                senderName: Aleksander Lukashenko
     securitySchemes:
         Token:
             scheme: bearer
