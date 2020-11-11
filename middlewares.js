@@ -7,31 +7,32 @@ const fetch = require('node-fetch');
 const jose = require('node-jose');
 const fs = require('fs');
 const abortController = require('abort-controller');
+const nock = require('nock')
 require('dotenv').config();
 
 exports.verifyToken = async (req, res, next) => {
 
     // Check if Authorization header is provided
-    let  authorizationHeader = req.header('Authorization');
+    let authorizationHeader = req.header('Authorization');
 
-    if(!authorizationHeader){
-        return res.status(401).json({error: "Missing Authorization header"});
+    if (!authorizationHeader) {
+        return res.status(401).json({ error: "Missing Authorization header" });
     }
     // Split Authorization header into an array by space
     authorizationHeader = authorizationHeader.split(' ');
 
     // Check Authorization header for token
-    if(!authorizationHeader[1]){
-        return res.status(400).json({error: "Invalid Authorization header format"});
+    if (!authorizationHeader[1]) {
+        return res.status(400).json({ error: "Invalid Authorization header format" });
     }
 
     // Validate if token is in mongo ObjectId format to prevent UnhandeledPromiseRejectionWarning
-    if(!mongoose.Types.ObjectId.isValid(authorizationHeader[1])) {
-        return res.status(401).json({error: "Invalid token"})
+    if (!mongoose.Types.ObjectId.isValid(authorizationHeader[1])) {
+        return res.status(401).json({ error: "Invalid token" })
     }
 
-    const session = await sessionModel.findOne({_id: authorizationHeader[1]});
-    if (!session) return res.status(401).json({error: "Invalid token"});
+    const session = await sessionModel.findOne({ _id: authorizationHeader[1] });
+    if (!session) return res.status(401).json({ error: "Invalid token" });
 
     // Write user's id into reg
     req.userId = session.userId;
@@ -49,12 +50,14 @@ exports.processTransactions = async () => {
     const key = await keystore.add(privateKey, 'pem');
 
     // Get pending transactions
-    const pendingTransactions = await transactionModel.find({ status: 'pending'});
+    const pendingTransactions = await transactionModel.find({ status: 'pending' });
 
     // Loop through each transaction and send a request
     pendingTransactions.forEach(async transaction => {
 
         console.log('loop: Processing transaction...');
+        console.log(transaction)
+        console.log(transaction.createdAt)
 
         // Calculate transaction expiry time
         transactionExpiryTime = new Date(
@@ -62,18 +65,18 @@ exports.processTransactions = async () => {
             transaction.createdAt.getMonth(),
             transaction.createdAt.getDate()
             + 3);
-        
-        if(transactionExpiryTime < new Date) {
+
+        if (transactionExpiryTime < new Date) {
 
             // Set transaction status to failed
             transaction.status = 'failed',
-            transaction.statusDetail = 'Timeout reached',
-            transaction.save();
+                transaction.statusDetail = 'Timeout reached',
+                transaction.save();
 
             // Go to next transaction
             return
         }
-        
+
         // Bundle together transaction and its abortController
         const transactionData = {
             transaction: transaction,
@@ -89,11 +92,11 @@ exports.processTransactions = async () => {
 
         let centralBankResult
 
-        if(!bankTo) {
+        if (!bankTo) {
             centralBankResult = exports.refreshBanksFromCentralBank()
         }
 
-        if(typeof centralBankResult !== 'undefined' && centralBankResult.error !== 'undefined') {
+        if (typeof centralBankResult !== 'undefined' && centralBankResult.error !== 'undefined') {
 
             console.log('loop: There was an error when tried to reach central bank')
             console.log(centralBankResult.error);
@@ -102,7 +105,7 @@ exports.processTransactions = async () => {
             transaction.status = 'pending';
             transaction.statusDetail = 'Central bank was down - cannot get destination bank details. More details ' +
                 centralBankResult.error;
-            transaction.save();
+            await transaction.save();
 
             // Go to next transaction
             return
@@ -112,7 +115,7 @@ exports.processTransactions = async () => {
             bankTo = await bankModel.findOne({ bankPrefix });
         }
 
-        if(!bankTo) {
+        if (!bankTo) {
 
             console.log('loop: WARN: Failed to get bankTo');
             // Set transaction status failed
@@ -155,11 +158,22 @@ exports.processTransactions = async () => {
                 transaction.save();
             }, 1000)
 
+            if (process.env.TEST_MODE === 'true') {
+                const scope = nock(bankTo.transactionUrl.hostname)
+                    .persist()
+                    .post(bankTo.transactionUrl.pathname)
+                    .reply(200, 
+                            {
+                                receiverName: "Vastu Võtja"
+                            }
+                        )
+
+            }
             // Actually send the request
             serverResponseAsObject = await fetch(bankTo.transactionUrl, {
                 signal: transactionData.abortController.signal,
                 method: 'POST',
-                body: JSON.stringify({jwt}),
+                body: JSON.stringify({ jwt }),
                 headers: {
                     'Content-Type': 'application/json'
                 }
@@ -177,8 +191,8 @@ exports.processTransactions = async () => {
         clearTimeout(timeout);
 
         // Server did not respond (we aborted before that)
-        if(typeof serverResponseAsPlainText === 'undefined') {
-            
+        if (typeof serverResponseAsPlainText === 'undefined') {
+
             // Stop processing this transaction for now and take the next one
             return
         }
@@ -201,7 +215,7 @@ exports.processTransactions = async () => {
         }
 
         // Log bad responses from server to transaction statusDetail
-        if(serverResponseAsObject.status < 200 || serverResponseAsObject.status >= 300) {
+        if (serverResponseAsObject.status < 200 || serverResponseAsObject.status >= 300) {
             console.log('loop: Server response was ' + serverResponseAsObject.status);
             transaction.status = 'failed'
             transaction.statusDetail = typeof serverResponseAsJson.error !== 'undefined' ?
@@ -225,10 +239,10 @@ exports.processTransactions = async () => {
 
         // Write changes to database
         transaction.save();
-        
+
     }, Error())
 
-    setTimeout(exports.processTransactions, 1000); 
+    setTimeout(exports.processTransactions, 1000);
 }
 
 /**
@@ -238,11 +252,34 @@ exports.processTransactions = async () => {
 
 exports.refreshBanksFromCentralBank = async () => {
 
+    const nock = require('nock')
+
+    if (process.env.TEST_MODE === 'true') {
+        const scope = nock(process.env.CENTRAL_BANK_URL)
+            .persist()
+            .get('/banks')
+            .reply(200, [
+                {
+                    "name": "Bank A",
+                    "owners": "John Doe",
+                    "jwksUrl": "https://banka.com/jwks",
+                    "transactionUrl": "https://banka.com/transactions/b2b",
+                    "bankPrefix": "aaa"
+                },
+                {
+                    "name": "Bank B",
+                    "owners": "Jane Doe",
+                    "jwksUrl": "https://bankb.com/jwks",
+                    "transactionUrl": "https://bankb.com/transactions/b2b",
+                    "bankPrefix": "bbb"
+                }
+            ])
+    }
     try {
         console.log('Refreshing banks')
 
-        console.log('Attempting to contact sentral bank at ' + `${process.env.CENTRAL_BANK_URL}/banks`)
-        banks = await fetch(`${process.env.CENTRAL_BANK_URL}/banks`, {
+        console.log('Attempting to contact central bank at ' + `${process.env.CENTRAL_BANK_URL}/banks`)
+        let banks = await fetch(`${process.env.CENTRAL_BANK_URL}/banks`, {
             headers: { 'Api-Key': process.env.CENTRAL_BANK_API_KEY }
         })
             .then(responseText => responseText.json())
@@ -254,6 +291,7 @@ exports.refreshBanksFromCentralBank = async () => {
         const bulk = bankModel.collection.initializeUnorderedBulkOp();
 
         // Add banks to queue to be inserted into database
+        //console.log(process.env.CENTRAL_BANK_API_KEY)
         banks.forEach(bank => {
             bulk.insert(bank);
         })
@@ -262,7 +300,7 @@ exports.refreshBanksFromCentralBank = async () => {
         await bulk.execute();
     }
     catch (e) {
-        return {error: e.message}
+        return { error: e.message }
     }
 
     return true

@@ -392,7 +392,7 @@ components:
                     description: Purpose of the transaction
                     type: string
             example:
-                accountFrom: RU000000001
+                accountFrom: abc3b770e63e9f1c2efc2b83c187653d2cc
                 accountTo: BY000000001
                 amount: 1500000000
                 explanation: Don’t go spend it all at once

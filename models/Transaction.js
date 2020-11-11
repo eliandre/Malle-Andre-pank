@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 module.exports = mongoose.model('Transaction', mongoose.Schema({
-    created: { type: Date, required: true, default: Date.now() },
+    createdAt: { type: Date, required: true, default: Date.now },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     amount: { type: Number, required: true, min: 1},
     currency: { type: String, required: true},
