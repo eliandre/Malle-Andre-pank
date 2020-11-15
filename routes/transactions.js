@@ -87,6 +87,8 @@ router.post('/', verifyToken, async (req, res, next) => {
 })
 router.post('/b2b', async (req, res, next) => {
 
+    let transaction;
+
     // Get jwt from the body
     jwt = req.body.jwt
 
@@ -142,7 +144,7 @@ router.post('/b2b', async (req, res, next) => {
         console.log('/b2b: Attempting to get bank from local bank list again');
         bankFrom = await bankModel.findOne({ bankPrefix: bankFromPrefix });
 
-        // Fail with error if teh bank is still not found
+        // Fail with error if the bank is still not found
         if(!bankFrom) {
             console.log('/b2b: Still didn\'t get teh bank. Failing now');
             return res.status(404).json({
@@ -219,7 +221,8 @@ router.post('/b2b', async (req, res, next) => {
     // Create transaction
     await transactionModel.create({
         userId: accountTo.userId,
-        amount: transaction.currency,
+        amount: transaction.amount,
+        currency: transaction.currency,
         accountFrom: transaction.accountFrom,
         accountTo: transaction.accountTo,
         explanation: transaction.explanation,
@@ -230,6 +233,15 @@ router.post('/b2b', async (req, res, next) => {
 
     // Send receiverName
     res.json({receiverName: accountToOwner.name});
+})
+
+router.get('/', verifyToken, async (req, res, next) => {
+
+    // Get user's transactions
+    const transactions = await transactionModel.find({ userId: req.userId })
+
+    // Return them
+    res.status(200).json(transactions);
 })
 
 router.get('/jwks', async (req, res, next) => {
@@ -244,7 +256,7 @@ router.get('/jwks', async (req, res, next) => {
 
     // Return our keystore (only the public key derived from the imported private key) in JWKS format
     console.log('/jwks: Exporting keystore and returning it');
-    return res.send(keystore.toJSON);
+    return res.send(keystore.toJSON());
 })
 
 module.exports = router;

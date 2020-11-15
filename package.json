@@ -25,6 +25,7 @@
     "exchange-rates-api": "^1.0.2",
     "express": "^4.17.1",
     "express-validator": "^6.6.1",
+    "got": "^11.8.0",
     "jsonwebtoken": "^8.5.1",
     "md5": "^2.3.0",
     "mongodb": "^3.6.2",

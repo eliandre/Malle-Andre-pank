@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-module.exports = mongoose.model('Transaction', mongoose.Schema({
+module.exports = mongoose.model('Transaction', new mongoose.Schema({
     createdAt: { type: Date, required: true, default: Date.now },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     amount: { type: Number, required: true, min: 1},
@@ -10,7 +10,6 @@ module.exports = mongoose.model('Transaction', mongoose.Schema({
     explanation: { type: String, required: true, minlength: 1 },
     senderName: { type: String, required: true, minlength: 1 },
     recieverName: { type: String, required: false, minlength: 1 },
-    abortController: { type: Object, required: false },
     status: { type: String, required: true, enum: ['pending', 'completed', 'inProgress', 'failed'], default: 'pending'},
     statusDetail: { type: String, required: false }
 }, {

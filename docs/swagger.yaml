@@ -122,6 +122,29 @@ paths:
                     Token: []
             summary: Returns currently logged in user's data
     /transactions:
+        get:
+            tags:
+                - transactions
+            responses:
+                '200':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/getTransactionResponse'
+                    description: Returns an array of user's transactions
+                '401':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/errorResponse'
+                            examples:
+                                invalidToken:
+                                    value:
+                                        error: Invalid token
+                    description: Invalid token
+            security:
+                -
+                    Token: []
         post:
             requestBody:
                 content:
@@ -392,7 +415,7 @@ components:
                     description: Purpose of the transaction
                     type: string
             example:
-                accountFrom: abc3b770e63e9f1c2efc2b83c187653d2cc
+                accountFrom: RU000000001
                 accountTo: BY000000001
                 amount: 1500000000
                 explanation: Don’t go spend it all at once
@@ -427,6 +450,55 @@ components:
                 currency: USD
                 explanation: Thx buddy
                 senderName: Aleksander Lukashenko
+        getTransactionResponse:
+            title: GET /transaction response
+            description: ''
+            required: []
+            type: object
+            properties:
+                id:
+                    description: Transaction ID
+                    type: string
+                status:
+                    description: '''One of: ''''pending'''', ''''completed'''', ''''inProgress'''', ''''failed'''''''
+                    type: string
+                amount:
+                    description: ''
+                    type: string
+                currency:
+                    description: ''
+                    type: string
+                accountFrom:
+                    description: Sender's account
+                    type: string
+                accountTo:
+                    description: Receiver's account
+                    type: string
+                explanation:
+                    description: ''
+                    type: string
+                senderName:
+                    description: ''
+                    type: string
+                createdAt:
+                    format: date-time
+                    description: ''
+                    type: string
+                statusDetail:
+                    description: ''
+                    type: string
+            example:
+                id: 5fa0428ccfe1f221b8dd6db4
+                status: inProgress
+                userId: 5f8331c99cc259057459e29f
+                amount: '3'
+                currency: EUR
+                accountFrom: abc3b770e63e9f1c2efc2b83c187653d2cc
+                accountTo: BY000000001
+                explanation: Don’t go spend it all at once
+                statusDetail: ''
+                senderName: Juku
+                createdAt: '2020-11-02T17:31:56.780+00:00'
     securitySchemes:
         Token:
             scheme: bearer
