@@ -99,7 +99,7 @@ router.post('/b2b', async (req, res, next) => {
         const base64EncodedPayload = jwt.split('.')[1];
 
         // Decode it and parse it to a transaction object
-        transaction = JSON.parse(Buffer.from(base64EncodedPayload, 'base64').toString);
+        transaction = JSON.parse(Buffer.from(base64EncodedPayload, 'base64').toString());
 
         console.log('/b2b: Recieved this payload: ' + JSON.stringify(transaction));
     }
